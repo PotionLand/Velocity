@@ -155,7 +155,6 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
     if (!channels.isEmpty()) {
       PluginMessage register = constructChannelsPacket(player.getProtocolVersion(), channels);
       player.getConnection().write(register);
-      player.getKnownChannels().addAll(channels);
     }
   }
 
@@ -287,7 +286,6 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
             packet.getChannel());
       } else if (PluginMessageUtil.isRegister(packet)) {
         List<String> channels = PluginMessageUtil.getChannels(packet);
-        player.getKnownChannels().addAll(channels);
         List<ChannelIdentifier> channelIdentifiers = new ArrayList<>();
         for (String channel : channels) {
           try {
@@ -301,7 +299,6 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
                 new PlayerChannelRegisterEvent(player, ImmutableList.copyOf(channelIdentifiers)));
         backendConn.write(packet.retain());
       } else if (PluginMessageUtil.isUnregister(packet)) {
-        player.getKnownChannels().removeAll(PluginMessageUtil.getChannels(packet));
         backendConn.write(packet.retain());
       } else if (PluginMessageUtil.isMcBrand(packet)) {
         String brand = PluginMessageUtil.readBrandMessage(packet.content());
@@ -479,9 +476,6 @@ public class ClientPlaySessionHandler implements MinecraftSessionHandler {
 
     // Tell the server about this client's plugin message channels.
     ProtocolVersion serverVersion = serverMc.getProtocolVersion();
-    if (!player.getKnownChannels().isEmpty()) {
-      serverMc.delayedWrite(constructChannelsPacket(serverVersion, player.getKnownChannels()));
-    }
 
     // If we had plugin messages queued during login/FML handshake, send them now.
     PluginMessage pm;
